@@ -74,16 +74,18 @@ function RefreshAccount (account, since)
         tokenInfos[contract] = requestTokenInfo(contract)
       end
 
-      local info = tokenInfos[contract]
-      local quantity = requestTokenBalance(address, contract) / info["divisor"]
+      if tokenInfos[contract] ~= nil then
+        local info = tokenInfos[contract]
+        local quantity = requestTokenBalance(address, contract) / info["divisor"]
 
-      s[#s+1] = {
-        name = info["name"] .. " · " .. address:lower(),
-        currency = nil,
-        market = "Etherscan",
-        quantity = quantity,
-        price = info["price"] * currencyPrice
-      }
+        s[#s+1] = {
+          name = info["name"] .. " · " .. address:lower(),
+          currency = nil,
+          market = "Etherscan",
+          quantity = quantity,
+          price = info["price"] * currencyPrice
+        }
+      end
     end
   end
 
@@ -129,11 +131,14 @@ function requestTokenInfo(contractAddress)
   local html = HTML(connection:get("https://etherscan.io/token/" .. contractAddress))
   local name = html:xpath("//*[@id='address']"):text()
   local summary = html:xpath("//*[@id='ContentPlaceHolder1_divSummary']"):text()
-  local decimals = tonumber(string.match(summary, "Token Decimals:%s+([%d,]+)"))
+  local decimals = tonumber(string.match(summary, "Decimals:%s+([%d,]+)"))
+  local price_fmt = string.match(summary, "Value per Token:%s+([^%s]+)")
+
+  if price_fmt == "-" then return nil end -- If the price is unknown, we'll ignore the token
 
   return {
     name = name,
-    price = tonumber(string.match(summary, "Value per Token:%s+$([%d%.,]+)")),
+    price = tonumber(string.match(price_fmt, "$([%d,.]+)")),
     divisor = math.pow(10, decimals)
   }
 end
