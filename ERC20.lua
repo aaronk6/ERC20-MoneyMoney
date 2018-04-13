@@ -28,7 +28,7 @@
 
 
 WebBanking{
-  version = 0.2,
+  version = 1.01,
   description = "Include your ERC20 token balances in MoneyMoney by providing your ETH addresses (in the username field, comma seperated) and your Etherscan API Key (in the password field)",
   url = "https://api.etherscan.io/api",
   services = { "ERC20 Tokens" }
