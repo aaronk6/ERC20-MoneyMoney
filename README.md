@@ -11,7 +11,7 @@ Fetches all available ERC20 balances for one or many ETH addresses from Ethersca
 You can get a signed version of this extension from
 
 * my [GitHub releases](https://github.com/aaronk6/ERC20-MoneyMoney/releases/latest) page, or
-* the [MoneyMoney Extensions](https://moneymoney-app.com/extensions/) page _(coming soon)_
+* the [MoneyMoney Extensions](https://moneymoney-app.com/extensions/) page
 
 Once downloaded, move `ERC20.lua` to your MoneyMoney Extensions folder.
 
