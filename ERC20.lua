@@ -134,7 +134,8 @@ function requestTokenInfo(contractAddress)
   local decimals = tonumber(string.match(summary, "Decimals:%s+([%d,]+)"))
   local price_fmt = string.match(summary, "Value per Token:%s+([^%s]+)")
 
-  if price_fmt == "-" then return nil end -- If the price is unknown, we'll ignore the token
+  -- If the price is unknown, we'll ignore the token
+  if price_fmt == nil or price_fmt == "-" then return nil end
 
   return {
     name = name,
