@@ -28,7 +28,7 @@
 
 
 WebBanking{
-  version = 1.01,
+  version = 1.02,
   description = "Include your ERC20 token balances in MoneyMoney by providing your ETH addresses (in the username field, comma seperated) and your Etherscan API Key (in the password field)",
   url = "https://api.etherscan.io/api",
   services = { "ERC20 Tokens" }
@@ -132,7 +132,7 @@ function requestTokenInfo(contractAddress)
   local name = html:xpath("//*[@id='address']"):text()
   local summary = html:xpath("//*[@id='ContentPlaceHolder1_divSummary']"):text()
   local decimals = tonumber(string.match(summary, "Decimals:%s+([%d,]+)"))
-  local price_fmt = string.match(summary, "Value per Token:%s+([^%s]+)")
+  local price_fmt = string.match(summary, "Price:%s+([^%s]+)")
 
   -- If the price is unknown, we'll ignore the token
   if price_fmt == nil or price_fmt == "-" then return nil end
