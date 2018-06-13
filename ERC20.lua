@@ -154,11 +154,20 @@ function requestTokenBalance(address, contract)
 end
 
 function requestFiatPrice(symbol)
-  local params = { base = "USD", symbols = symbol }
+  local baseCurrency = 'USD'
   local connection = Connection()
-  local response = connection:request("GET", "https://api.fixer.io/latest?" .. httpBuildQuery(params))
-  local json = JSON(response)
-  return json:dictionary()["rates"][symbol]
+  local xml
+
+  if symbol == "EUR" then
+    xml = connection:request("GET", "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
+    res = string.match(xml, "<Cube currency='" .. baseCurrency .. "' rate='([^']+)")
+    value = round(1 / tonumber(res), 4)
+  else
+    error("Currency " .. symbol .. " is not supported")
+  end
+
+  print("1 " .. baseCurrency .. " = " .. value .. " " .. symbol)
+  return value
 end
 
 function httpBuildQuery(params)
@@ -167,4 +176,10 @@ function httpBuildQuery(params)
     str = str .. key .. "=" .. value .. "&"
   end
   return str.sub(str, 1, -2)
+end
+
+-- http://lua-users.org/wiki/SimpleRound
+function round(num, places)
+  local mult = 10^(places or 0)
+  return math.floor(num * mult + 0.5) / mult
 end
