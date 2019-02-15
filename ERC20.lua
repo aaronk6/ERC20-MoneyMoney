@@ -1,12 +1,12 @@
 -- ERC20 Extension for MoneyMoney
--- Fetches all token balances from a given list of ETH addresses (using Etherscan)
+-- Fetches all token balances from a given list of ETH addresses (using Ethplorer)
 --
 -- Username: ETH addresses (comma seperated)
--- Password: Etherscan API Key
+-- Password: (anything, just don't leave it blank)
 
 -- MIT License
 
--- Copyright (c) 2018 aaronk6
+-- Copyright (c) 2019 aaronk6
 
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
@@ -28,16 +28,18 @@
 
 
 WebBanking{
-  version = 1.03,
-  description = "Include your ERC20 token balances in MoneyMoney by providing your ETH addresses (in the username field, comma seperated) and your Etherscan API Key (in the password field)",
-  url = "https://api.etherscan.io/api",
+  version = 1.04,
+  description = "Include your ERC20 token balances in MoneyMoney by providing your ETH addresses (comma seperated)",
+  url = "https://api.ethplorer.io",
   services = { "ERC20 Tokens" }
 }
 
 local ethAddresses
-local etherscanApiKey
+local apiKey = ''
+local isFirstApiRequest = true
+local freeApiSleep = 6
 local connection = Connection()
-local currency = "EUR" -- fixme: make dynamik if MM enables input field
+local currency = "EUR"
 
 function SupportsBank (protocol, bankCode)
   return protocol == ProtocolWebBanking and bankCode == "ERC20 Tokens"
@@ -45,7 +47,7 @@ end
 
 function InitializeSession (protocol, bankCode, username, username2, password, username3)
   ethAddresses = username:gsub("%s+", "")
-  etherscanApiKey = password
+  apiKey = password
 end
 
 function ListAccounts (knownAccounts)
@@ -61,32 +63,41 @@ function ListAccounts (knownAccounts)
   return {account}
 end
 
-
 function RefreshAccount (account, since)
+
   local s = {}
   local currencyPrice = requestFiatPrice(currency)
-  local tokenInfos = {}
-
+  
   for address in string.gmatch(ethAddresses, '([^,]+)') do
-    for _, contract in ipairs(requestContractAddressesForEthAddress(address)) do
+    local res = queryAPI('/getAddressInfo/' .. address)
 
-      if (tokenInfos[contract] == nil) then
-        tokenInfos[contract] = requestTokenInfo(contract)
+    if res["address"] then
+      if res["tokens"] then
+
+        for i, o in ipairs(res["tokens"]) do
+          info = o["tokenInfo"]
+
+          if info["price"] and info["price"]["currency"] == "USD" then
+            -- add to list if security
+            s[#s+1] = createSecurity(address,
+              info["name"], info["symbol"], o["balance"], info["decimals"], info["price"]["rate"], currencyPrice)
+          else
+            -- token doesn't have a price or price isn't in USD
+            if info["price"] then
+              print("Unexpected currency " .. info["price"]["currency"] .. " for " .. info["symbol"])
+            else
+              print("No price for " .. info["symbol"])
+            end
+          end
+        end
+
+      else
+        print("No token balances for address " .. address)
       end
-
-      if tokenInfos[contract] ~= nil then
-        local info = tokenInfos[contract]
-        local quantity = requestTokenBalance(address, contract) / info["divisor"]
-
-        s[#s+1] = {
-          name = info["name"] .. " · " .. address:lower(),
-          currency = nil,
-          market = "Etherscan",
-          quantity = quantity,
-          price = info["price"] * currencyPrice
-        }
-      end
+    else
+      print("Unexpected response from API")
     end
+
   end
 
   return {securities = s}
@@ -95,62 +106,37 @@ end
 function EndSession ()
 end
 
-function queryAPI(params)
+function createSecurity(address, name, symbol, balance, decimals, price, currencyPrice)
 
-  params["apikey"] = etherscanApiKey
+  local description = ""
 
-  local connection = Connection()
-  local content = connection:request("GET", url .. '?' .. httpBuildQuery(params))
-
-  return JSON(content):dictionary()["result"]
-end
-
-function requestContractAddressesForEthAddress(ethAddress)
-
-  -- No API method for this (as of Mar 11, 2018), therefore using web scraping
-
-  local connection = Connection()
-  local html = HTML(connection:get("https://etherscan.io/address/" .. ethAddress))
-  local elements = html:xpath("//ul[@id='balancelist']/li/a")
-  local addresses = {}
-
-  elements:each(function (index, element)
-    local href = element:attr('href')
-    local address = string.match(href, "^%/token%/(0x[0-9a-fA-F]+)")
-    table.insert(addresses, address)
-  end)
-
-  return addresses
-end
-
-function requestTokenInfo(contractAddress)
-
-  -- No API method for this (as of Mar 11, 2018), therefore using web scraping
-
-  local connection = Connection()
-  local html = HTML(connection:get("https://etherscan.io/token/" .. contractAddress))
-  local name = html:xpath("//*[@id='address']"):text()
-  local summary = html:xpath("//*[@id='ContentPlaceHolder1_divSummary']"):text()
-  local decimals = tonumber(string.match(summary, "Decimals:%s+([%d,]+)"))
-  local price_fmt = string.match(summary, "Price:%s+([^%s]+)")
-
-  -- If the price is unknown, we'll ignore the token
-  if price_fmt == nil or price_fmt == "-" then return nil end
-
+  if symbol ~= name then
+    description = " (" .. name .. ")"
+  end
+  
   return {
-    name = name,
-    price = tonumber(string.match(price_fmt, "$([%d,.]+)")),
-    divisor = math.pow(10, decimals)
+    name = symbol .. description .. " · " .. address:lower(),
+    currency = nil,
+    market = "Ethplorer",
+    quantity = balance / math.pow(10, decimals),
+    price = price * currencyPrice
   }
 end
 
-function requestTokenBalance(address, contract)
-  return queryAPI({
-    module = "account",
-    action = "tokenbalance",
-    address = address,
-    contractaddress = contract
-  })
+function queryAPI(route)
+
+  if not isFirstApiRequest and apiKey == 'freekey' then
+    -- see https://github.com/EverexIO/Ethplorer/wiki/Ethplorer-API
+    print("Sleeping " .. freeApiSleep .. " seconds to avoid free API key rate limit")
+    sleep(freeApiSleep)
+  end
+
+  local connection = Connection()
+  local content = connection:request("GET", url .. route .. '?apiKey=' .. apiKey)
+
+  isFirstApiRequest = false
+
+  return JSON(content):dictionary()
 end
 
 function requestFiatPrice(symbol)
@@ -170,16 +156,12 @@ function requestFiatPrice(symbol)
   return value
 end
 
-function httpBuildQuery(params)
-  local str = ''
-  for key, value in pairs(params) do
-    str = str .. key .. "=" .. value .. "&"
-  end
-  return str.sub(str, 1, -2)
-end
-
--- http://lua-users.org/wiki/SimpleRound
 function round(num, places)
   local mult = 10^(places or 0)
   return math.floor(num * mult + 0.5) / mult
+end
+
+function sleep(s)
+  local ntime = os.time() + s
+  repeat until os.time() > ntime
 end
