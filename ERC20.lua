@@ -75,7 +75,7 @@ function RefreshAccount (account, since)
       if res["tokens"] then
 
         for i, o in ipairs(res["tokens"]) do
-          info = o["tokenInfo"]
+          local info = o["tokenInfo"]
 
           if info["price"] and info["price"]["currency"] == "USD" then
             -- add to list if security
