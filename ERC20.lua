@@ -83,10 +83,12 @@ function RefreshAccount (account, since)
               info["name"], info["symbol"], o["balance"], info["decimals"], info["price"]["rate"], currencyPrice)
           else
             -- token doesn't have a price or price isn't in USD
-            if info["price"] then
+            if info["price"] and info["symbol"] then
               print("Unexpected currency " .. info["price"]["currency"] .. " for " .. info["symbol"])
-            else
+            elseif info["symbol"] then
               print("No price for " .. info["symbol"])
+            else
+              print("Unknown token")
             end
           end
         end
