@@ -6,7 +6,7 @@
 
 -- MIT License
 
--- Copyright (c) 2019 aaronk6
+-- Copyright (c) 2021 aaronk6
 
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
 
 
 WebBanking{
-  version = 1.04,
+  version = 1.05,
   description = "Include your ERC20 token balances in MoneyMoney by providing your ETH addresses (comma seperated)",
   url = "https://api.ethplorer.io",
   services = { "ERC20 Tokens" }
