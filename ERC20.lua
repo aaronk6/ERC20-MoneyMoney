@@ -120,7 +120,7 @@ function createSecurity(address, name, symbol, balance, decimals, price, currenc
     name = symbol .. description .. " · " .. address:lower(),
     currency = nil,
     market = "Ethplorer",
-    quantity = balance / math.pow(10, decimals),
+    quantity = balance / (10 ^ decimals),
     price = price * currencyPrice
   }
 end
