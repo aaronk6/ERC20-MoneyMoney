@@ -67,7 +67,7 @@ function RefreshAccount (account, since)
 
   local s = {}
   local currencyPrice = requestFiatPrice(currency)
-  
+
   for address in string.gmatch(ethAddresses, '([^,]+)') do
     local res = queryAPI('/getAddressInfo/' .. address)
 
@@ -115,7 +115,7 @@ function createSecurity(address, name, symbol, balance, decimals, price, currenc
   if symbol ~= name then
     description = " (" .. name .. ")"
   end
-  
+
   return {
     name = symbol .. description .. " · " .. address:lower(),
     currency = nil,
@@ -130,7 +130,7 @@ function queryAPI(route)
   if not isFirstApiRequest and apiKey == 'freekey' then
     -- see https://github.com/EverexIO/Ethplorer/wiki/Ethplorer-API
     print("Sleeping " .. freeApiSleep .. " seconds to avoid free API key rate limit")
-    sleep(freeApiSleep)
+    MM.sleep(freeApiSleep)
   end
 
   local connection = Connection()
@@ -161,9 +161,4 @@ end
 function round(num, places)
   local mult = 10^(places or 0)
   return math.floor(num * mult + 0.5) / mult
-end
-
-function sleep(s)
-  local ntime = os.time() + s
-  repeat until os.time() > ntime
 end
